@@ -25,6 +25,7 @@ class medoo {
     protected $charset = 'utf8';
     protected $database_name = '';
     protected $option = array();
+    protected $monitor = true;
 
     public function __construct($options) {
         try {
@@ -79,6 +80,41 @@ class medoo {
             throw new \Exception($e->getMessage());
         }
     }
+    
+    public function setMonitor($status = false) {
+        $this->monitor = $status;
+    }
+    
+    public function beginTransaction() {
+        $this->pdo->beginTransaction();
+    }
+    
+    public function rollback() {
+        $this->pdo->rollback();
+    }
+    
+    public function commit() {
+        $this->pdo->commit();
+    }
+    
+    public function inTransaction() {
+        return $this->pdo->inTransaction();
+    }
+    
+    public function selectLastInsertId() {
+        return $this->pdo->lastInsertId();
+    }
+    
+    public function erro_and_log()
+    {
+        $err = $this->error();
+        if ($err['0'] != 00000) {
+            $sql = $this->last_query();
+            $err[] = $sql;
+            $model = new \Common\Model\Logger();
+            $model->Log("medoo", "error", $err, $sql);
+        }
+    }
 
     public function reset_pdo() {
         if (
@@ -127,7 +163,7 @@ class medoo {
         $rtn = $this->pdo->query($query);
         if ($rtn === false && ($code = $this->pdo->errorCode)) {
             // Exception
-            throw new Exception($this->pdo->errorInfo, $code);
+            throw new \Exception($this->pdo->errorInfo, $code);
         }
         return $rtn;
 
@@ -140,7 +176,7 @@ class medoo {
         $rtn = $this->pdo->exec($query);
         if ($rtn === false && ($code = $this->pdo->errorCode)) {
             // Exception
-            throw new Exception($this->pdo->errorInfo, $code);
+            throw new \Exception($this->pdo->errorInfo, $code);
         }
         return $rtn;
 //        return $this->pdo->exec($query);
