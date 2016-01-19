@@ -1,6 +1,6 @@
 <?php
 
-namespace ThirdPlugins\Medoo;
+namespace Plugins\Medoo;
 
 /* !
  * Medoo database framework
@@ -20,6 +20,7 @@ class medoo {
     protected $password = 'password';
     // For SQLite
     protected $database_file = '';
+    public $pdo;
     // Optional
     protected $port = 3306;
     protected $charset = 'utf8';
@@ -27,7 +28,13 @@ class medoo {
     protected $option = array();
     protected $monitor = true;
 
-    public function __construct($options) {
+    public function __construct($host, $username, $password, $port = 3306, $database_name = '', $charset = 'utf8', $options = null) {
+        $this->server = $host;
+        $this->username = $username;
+        $this->password = $password;
+        $this->port = $port;
+        $this->database_name = $database_name;
+        $this->charset = $charset;
         try {
             $type = strtolower($this->database_type);
 
@@ -80,33 +87,50 @@ class medoo {
             throw new \Exception($e->getMessage());
         }
     }
-    
+
+    /**
+     * @author sunyuw <leentingOne@gmail.com>
+     * 
+     * @param type $table
+     * @param type $join
+     * @param type $columns
+     * @param type $where
+     * @return type
+     */
+    public function select_single($table, $join, $columns = null, $where = null) {
+        $rtn = $this->select($table, $join, $columns, $where);
+        if ($rtn && is_array(current($rtn))) {
+            return current($rtn);
+        } else {
+            return $rtn;
+        }
+    }
+
     public function setMonitor($status = false) {
         $this->monitor = $status;
     }
-    
+
     public function beginTransaction() {
         $this->pdo->beginTransaction();
     }
-    
+
     public function rollback() {
         $this->pdo->rollback();
     }
-    
+
     public function commit() {
         $this->pdo->commit();
     }
-    
+
     public function inTransaction() {
         return $this->pdo->inTransaction();
     }
-    
+
     public function selectLastInsertId() {
         return $this->pdo->lastInsertId();
     }
-    
-    public function erro_and_log()
-    {
+
+    public function erro_and_log() {
         $err = $this->error();
         if ($err['0'] != 00000) {
             $sql = $this->last_query();
@@ -174,9 +198,9 @@ class medoo {
         $this->queryString = $query;
 
         $rtn = $this->pdo->exec($query);
-        if ($rtn === false && ($code = $this->pdo->errorCode)) {
+        if ($rtn === false && ($code = $this->pdo->errorCode())) {
             // Exception
-            throw new \Exception($this->pdo->errorInfo, $code);
+            throw new \Exception($this->pdo->errorInfo, $code, $query);
         }
         return $rtn;
 //        return $this->pdo->exec($query);
